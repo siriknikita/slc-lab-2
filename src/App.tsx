@@ -3,6 +3,9 @@ import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PreferencesDialog } from "@/components/PreferencesDialog";
+import { useLocale } from "@/contexts/LocaleContext";
+import { translations } from "@/i18n";
 import type { JiraTicket } from "@/types";
 
 function buildReleaseMessage(tickets: JiraTicket[], version = "v0.1.0"): string {
@@ -18,10 +21,13 @@ function buildReleaseMessage(tickets: JiraTicket[], version = "v0.1.0"): string 
 }
 
 function App() {
+  const { locale } = useLocale();
+  const t = translations[locale];
   const [ticketInput, setTicketInput] = useState("");
   const [tickets, setTickets] = useState<JiraTicket[]>([]);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
 
   async function handleFetch() {
     const keys = ticketInput
@@ -52,25 +58,31 @@ function App() {
 
   return (
     <main className="min-h-screen p-6 flex flex-col items-center gap-6">
-      <h1 className="text-xl font-semibold">Jira Discord Release</h1>
-      <p className="text-muted-foreground text-sm">Enter Jira ticket keys (e.g. PROJ-1, PROJ-2)</p>
+      <div className="w-full max-w-md flex justify-end">
+        <Button variant="ghost" size="sm" onClick={() => setPrefsOpen(true)}>
+          {t.preferences}
+        </Button>
+      </div>
+      <PreferencesDialog open={prefsOpen} onClose={() => setPrefsOpen(false)} />
+      <h1 className="text-xl font-semibold">{t.title}</h1>
+      <p className="text-muted-foreground text-sm">{t.subtitle}</p>
       <div className="flex gap-2 w-full max-w-md">
         <Input
-          placeholder="PROJ-1, PROJ-2, ..."
+          placeholder={t.placeholder}
           className="flex-1"
           value={ticketInput}
           onChange={(e) => setTicketInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleFetch()}
         />
         <Button onClick={handleFetch} disabled={loading}>
-          {loading ? "..." : "Fetch"}
+          {loading ? t.loading : t.fetch}
         </Button>
       </div>
       {tickets.length > 0 && (
         <ul className="w-full max-w-md text-left list-disc list-inside space-y-1 text-sm">
-          {tickets.map((t) => (
-            <li key={t.key}>
-              <span className="font-medium">{t.key}</span>: {t.summary} ({t.status})
+          {tickets.map((ticket) => (
+            <li key={ticket.key}>
+              <span className="font-medium">{ticket.key}</span>: {ticket.summary} ({ticket.status})
             </li>
           ))}
         </ul>
@@ -78,9 +90,9 @@ function App() {
       {releaseMessage && (
         <div className="w-full max-w-md flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-medium">Release message for Discord</span>
+            <span className="text-sm font-medium">{t.releaseMessageLabel}</span>
             <Button variant="outline" size="sm" onClick={handleCopy}>
-              {copied ? "Copied!" : "Copy"}
+              {copied ? t.copied : t.copy}
             </Button>
           </div>
           <pre className="p-3 rounded-md bg-muted text-sm overflow-auto max-h-48 whitespace-pre-wrap">
